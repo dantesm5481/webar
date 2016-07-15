@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<meta charset="UTF8">
+<html>
+<head>
+<title>Raymond test Web AR</title>
+
+<style>
+    body{
+       background: 0xff0000; 
+    }
+
+
+</style>
+<div id="area"></div>
+<script src="http://threejs.org/build/three.min.js"></script>
+<script src="js/JSARToolKit.js"></script>
+</head>
+<body><script>
+        
+        var area,width,height,scene,renderer,camera,cube;// three.js
+
+        // var raster = new NyARRgbRaster_Canvas2D(canvas);
+        // var param = new FLARParam(320, 240);
+        // var detector = new FLARMultiIdMarkerDetector(param, 120);
+        //     detector.setContinueMode(true);
+        //     param.copyCameraMatrix(display.camera.perspectiveMatrix, 10, 10000);
+
+        init3D();
+        render();
+
+        function init3D(){
+
+        area = document.getElementById('area');//指定一個變數
+        width  = window.innerWidth,// 取得 視窗的寬與高
+		height = window.innerHeight;
+        scene = new THREE.Scene(); //宣告場景
+
+        renderer = new THREE.WebGLRenderer(); //宣告一個渲染器
+		renderer.setSize(width, height);
+        
+        camera = new THREE.PerspectiveCamera(45, width / height, 1, 800);
+        camera.position.set(0, 0, 5);
+
+        //宣告一個  Cube的幾何圖形
+        cube = new THREE.Mesh(new THREE.CubeGeometry(2, 2, 2),
+                        new THREE.MeshBasicMaterial({
+                            color: 0xff0000
+                        })
+                );
+        scene.add(camera);
+        scene.add(cube);  
+        }
+        function render(){
+            renderer.render( scene , camera );
+            area.appendChild(renderer.domElement);
+            requestAnimationFrame(render);  
+        }
+
+</script></body>
+</html>
