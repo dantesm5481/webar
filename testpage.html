@@ -11,9 +11,6 @@
         <script src="http://threejs.org/build/three.min.js"></script>
         <script src="js/JSARToolKit.js"></script>
         <script src='js/threex.videotexture.js'></script>
-        <script src="js/DDSLoader.js"></script>
-        <script src="js/MTLLoader.js"></script>
-        <script src="js/OBJLoader.js"></script>
         <script src="CameraView.js"></script>
         <script src="Content.js"></script>
         <script src="CameraCanvas.js"></script>
@@ -49,6 +46,7 @@
 
             document.body.appendChild(debugCanvas);
 
+
             //将视频写入videoCanvas,之后将作为纹理付给plan平面
             var videoCanvas = document.createElement('canvas');
             videoCanvas.width = cameraview.width;
@@ -57,10 +55,6 @@
             //获取canvas画笔
             var ctx = canvas.getContext('2d');
             ctx.font = "24px URW Gothic L, Arial, Sans-serif";
-
-
-
-
 
             // 为Canvas创建光栅对象，JSAR用光栅对象读取每一帧画面的数据，切记要设置canvas.changed = true告知JSAR动态识别
             var raster = new NyARRgbRaster_Canvas2D(canvas);
@@ -73,14 +67,11 @@
             //设置检测器持续循环捕捉
             detector.setContinueMode(true);
 
-
-
-
             // glMatrix 矩阵是一个float 类型的数组.
             var tmp = new Float32Array(16);
             //创建3维渲染环境
             var renderer = new THREE.WebGLRenderer();
-            renderer.setSize(960, 720);
+            renderer.setSize(960, 720);// 螢幕長寬
 
             var glCanvas = renderer.domElement;
             var s = glCanvas.style;
@@ -100,7 +91,6 @@
             camera.projectionMatrix.setFromArray(tmp);
             //将摄像头的视频作为材质贴图
             var videoTex = new THREE.Texture(videoCanvas);
-            //
             var loader = new THREE.JSONLoader();
             // 创建一个平面，材质 texture贴图是视频Canvas，添加到场景中去
             var plane = new THREE.Mesh(
@@ -142,6 +132,8 @@
                 //通过引擎在光栅对象上检测获取到的标记的数量，threshold是对比度阀值，根据阀值把图像处理成纯黑或纯白的马赛克像素点
                 var detected = detector.detectMarkerLite(raster, threshold);
                 //遍历检测到的标记并获取它们的转换矩阵。使用转换矩阵将 3D 对象显示在标记上。
+
+
                 for (var idx = 0; idx<detected; idx++) {
                     //遍历获取标记图片所隐藏的数字字节编码
                     var id = detector.getIdMarkerData(idx);
@@ -208,7 +200,7 @@
         }
 
 
-        
+
         //将glMatrix 矩阵转换成THREE.Matrix4矩阵
         THREE.Matrix4.prototype.setFromArray = function(m) {
             return this.set(

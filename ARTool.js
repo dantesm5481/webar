@@ -1,29 +1,32 @@
 
-
-function getARtool(canvas) {
-     // 为Canvas创建光栅对象，JSAR用光栅对象读取每一帧画面的数据，切记要设置canvas.changed = true告知JSAR动态识别
+    // todo test
+    function getARtool(canvas) {
             var raster = new NyARRgbRaster_Canvas2D(canvas);
-            //设置摄像头参数，FLARParam是FLAR的方法
             var param = new FLARParam(320,240);
-            //创建一个NyARTransMatResult对象来获取标记的转换矩阵
             var resultMat = new NyARTransMatResult();
-            //FLARMultiIdMarkerDetector是一个侦测并捕捉标记点的检测引擎，他能够侦测出多种不同ID的标记点，标记点其实是一些数字的编码的二维码。
             var detector = new FLARMultiIdMarkerDetector(param, 120);
-            //设置检测器持续循环捕捉
             detector.setContinueMode(true);
 
-               // Next we need to make the Three.js camera use the FLARParam matrix.
-            //从FLARParam复制摄像机透视矩阵到WEBGL摄像机矩阵库中，后两个参数表示在Z轴上的最近最远距离。
             param.copyCameraMatrix(tmp, 10, 10000);
-            //设置相机的投影矩阵
             camera.projectionMatrix.setFromArray(tmp);
-            //将摄像头的视频作为材质贴图
-            var tmp = new Float32Array(16);
 
+    }
+    // todo test
+    function getRaster (canvas){
+        var raster = new NyARRgbRaster_Canvas2D(canvas);
+        return raster;
+    }   
+    //todo test
+    function getResult(){
+        var rasultMat = new NyARTransMatResult();
+    }
+    //todo test 
+    function getDetector(params) {
+    
+    }
 
-}
-
-   THREE.Matrix4.prototype.setFromArray = function(m) {
+        //将glMatrix 矩阵转换成THREE.Matrix4矩阵
+        THREE.Matrix4.prototype.setFromArray = function(m) {
             return this.set(
                     m[0], m[4], m[8], m[12],
                     m[1], m[5], m[9], m[13],
@@ -31,3 +34,24 @@ function getARtool(canvas) {
                     m[3], m[7], m[11], m[15] 
             )
         };
+
+        //以下代码用于将 JSARToolKit 矩阵复制转换成 glMatrix 矩阵（这些矩阵是 16 个元素的 FloatArrays，其中最后四个元素是转换列）。
+        //这段代码十分奇妙,这个符号反转技巧让 JSARToolKit 矩阵的运行效果与 glMatrix 相同。
+        function copyMatrix(mat, cm) {
+            cm[0] = mat.m00;
+            cm[1] = -mat.m10;
+            cm[2] = mat.m20;
+            cm[3] = 0;
+            cm[4] = mat.m01;
+            cm[5] = -mat.m11;
+            cm[6] = mat.m21;
+            cm[7] = 0;
+            cm[8] = -mat.m02;
+            cm[9] = mat.m12;
+            cm[10] = -mat.m22;
+            cm[11] = 0;
+            cm[12] = mat.m03;
+            cm[13] = -mat.m13;
+            cm[14] = mat.m23;
+            cm[15] = 1;
+        }
