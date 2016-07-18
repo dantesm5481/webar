@@ -14,6 +14,7 @@
         <script src="js/DDSLoader.js"></script>
         <script src="js/MTLLoader.js"></script>
         <script src="js/OBJLoader.js"></script>
+        <script src="CameraView.js"></script>
         <script>
 
         var earthRotY = 0;
@@ -21,53 +22,50 @@
 
         threshold = 140;
         DEBUG = true;
-        //todo test on every frame
-        // var updateFcts	= [];
+        // var cameraview = document.getElementById("cameraView");
+        var cameraview = getCameraView();
+
         //todo
-        var video = document.createElement('video');
-        video.width = 640;
-        video.height = 480;
-        video.loop = true;
-        video.volume = 0;
-        video.autoplay = true;
-        video.style="visibility:hidden;display:none";
-        //video.controls = true;
+        // var cameraview = document.createElement('video');
+        // cameraview.width = 640;
+        // cameraview.height = 480;
+        // cameraview.loop = true;
+        // cameraview.volume = 0;
+        // cameraview.autoplay = true;
+        // cameraview.style="visibility:hidden;display:none";
+        // cameraview.controls = true;
 
+    
         //獲取網路攝影機畫面
-        var getUserMedia = function(t, onsuccess, onerror) {
-            if (navigator.getUserMedia) {
-                return navigator.getUserMedia(t, onsuccess, onerror);
-            } else if (navigator.webkitGetUserMedia) {
-                return navigator.webkitGetUserMedia(t, onsuccess, onerror);
-            } else if (navigator.mozGetUserMedia) {
-                return navigator.mozGetUserMedia(t, onsuccess, onerror);
-            } else if (navigator.msGetUserMedia) {
-                return navigator.msGetUserMedia(t, onsuccess, onerror);
-            } else {
-                onerror(new Error("No getUserMedia implementation found."));
-            }
-        };
+        // var getUserMedia = function(t, onsuccess, onerror) {
+        //     if (navigator.getUserMedia) {
+        //         return navigator.getUserMedia(t, onsuccess, onerror);
+        //     } else if (navigator.webkitGetUserMedia) {
+        //         return navigator.webkitGetUserMedia(t, onsuccess, onerror);
+        //     } else if (navigator.mozGetUserMedia) {
+        //         return navigator.mozGetUserMedia(t, onsuccess, onerror);
+        //     } else if (navigator.msGetUserMedia) {
+        //         return navigator.msGetUserMedia(t, onsuccess, onerror);
+        //     } else {
+        //         onerror(new Error("No getUserMedia implementation found."));
+        //     }
+        // };
 
-        var URL = window.URL || window.webkitURL;
-        var createObjectURL = URL.createObjectURL || webkitURL.createObjectURL;
-        if (!createObjectURL) {
-            throw new Error("URL.createObjectURL not found.");
-        }
+        // var URL = window.URL || window.webkitURL;
+        // var createObjectURL = URL.createObjectURL || webkitURL.createObjectURL;
+        // if (!createObjectURL) {
+        //     throw new Error("URL.createObjectURL not found.");
+        // }
 
-        getUserMedia({'video': true},
-                function(stream) {
-                    var url = createObjectURL(stream);
-                    video.src = url;
-                },
-                function(error) {
-                    alert("Couldn't access webcam.");
-                }
-        );
+        // var streaming =  function(stream) {cameraview.src = createObjectURL(stream);}
+        // var error     =  function(error){alert("Couldn't access webcam.");}       
+        
+        // getUserMedia({'video':true} , streaming , error)
 
         window.onload = function() {
             document.getElementById('loading').style.display = 'none';
             //獲取網路攝影機畫面
-            document.body.appendChild(video);
+            document.body.appendChild(cameraview);
             //將影片寫入Canvas
             var canvas = document.createElement('canvas');
             canvas.width = 320;
@@ -83,8 +81,8 @@
             document.body.appendChild(debugCanvas);
             //将视频写入videoCanvas,之后将作为纹理付给plan平面
             var videoCanvas = document.createElement('canvas');
-            videoCanvas.width = video.width;
-            videoCanvas.height = video.width*3/4;
+            videoCanvas.width = cameraview.width;
+            videoCanvas.height = cameraview.width*3/4;
 
             //获取canvas画笔
             var ctx = canvas.getContext('2d');
@@ -103,7 +101,7 @@
 
             // glMatrix 矩阵是一个float 类型的数组.
             var tmp = new Float32Array(16);
-//创建3维渲染环境
+            //创建3维渲染环境
             var renderer = new THREE.WebGLRenderer();
             renderer.setSize(960, 720);
 
@@ -159,16 +157,16 @@
             var lastTime = 0;
             //然后在光栅对象上运行检测器。检测器会返回在图片中找到的标记数量。setInterval定时器实现持续更新的动画
             setInterval(function(){
-                if (video.ended) video.play();
-                if (video.paused) return;
+                if (cameraview.ended) cameraview.play();
+                if (cameraview.paused) return;
                 if (window.paused) return;
-                if (video.currentTime == video.duration) {
-                    video.currentTime = 0;
+                if (cameraview.currentTime == cameraview.duration) {
+                    cameraview.currentTime = 0;
                 }
-                if (video.currentTime == lastTime) return;
-                lastTime = video.currentTime;
+                if (cameraview.currentTime == lastTime) return;
+                lastTime = cameraview.currentTime;
                 //在光栅对象运行Canvas上实时绘制视频的图像
-                videoCanvas.getContext('2d').drawImage(video,0,0);
+                videoCanvas.getContext('2d').drawImage(cameraview,0,0);
                 ctx.drawImage(videoCanvas, 0,0,320,240);
                 var dt = new Date().getTime();
                 //告知光栅对象更新
@@ -302,6 +300,11 @@
 
             }, 15);
         }
+
+
+
+
+        
         //将glMatrix 矩阵转换成THREE.Matrix4矩阵
         THREE.Matrix4.prototype.setFromArray = function(m) {
             return this.set(
@@ -312,7 +315,8 @@
             )
         };
 
-        //以下代码用于将 JSARToolKit 矩阵复制转换成 glMatrix 矩阵（这些矩阵是 16 个元素的 FloatArrays，其中最后四个元素是转换列）。这段代码十分奇妙,这个符号反转技巧让 JSARToolKit 矩阵的运行效果与 glMatrix 相同。
+        //以下代码用于将 JSARToolKit 矩阵复制转换成 glMatrix 矩阵（这些矩阵是 16 个元素的 FloatArrays，其中最后四个元素是转换列）。
+        //这段代码十分奇妙,这个符号反转技巧让 JSARToolKit 矩阵的运行效果与 glMatrix 相同。
         function copyMatrix(mat, cm) {
             cm[0] = mat.m00;
             cm[1] = -mat.m10;

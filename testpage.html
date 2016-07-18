@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+
+	<head>
+		<title>AR</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+
+	</head>
+	<body>
+        <script src="http://threejs.org/build/three.min.js"></script>
+        <script src="js/JSARToolKit.js"></script>
+        <script src='js/threex.videotexture.js'></script>
+        <script src="js/DDSLoader.js"></script>
+        <script src="js/MTLLoader.js"></script>
+        <script src="js/OBJLoader.js"></script>
+        <script src="CameraView.js"></script>
+        <script src="Content.js"></script>
+        <script>
+
+        var earthRotY = 0;
+
+
+        threshold = 140;
+        DEBUG = true;
+        // var cameraview = document.getElementById("cameraView");
+        var cameraview = getCameraView();
+
+        window.onload = function() {
+            document.getElementById('loading').style.display = 'none';
+            //獲取網路攝影機畫面
+            document.body.appendChild(cameraview);
+            //將影片寫入Canvas
+            var canvas = document.createElement('canvas');
+            canvas.width = 320;
+            canvas.height = 240;
+            canvas.style="visibility:hidden";
+            document.body.appendChild(canvas);
+            //圖像處理debug畫面
+            var debugCanvas = document.createElement('canvas');
+            debugCanvas.id = 'debugCanvas';
+            debugCanvas.width = 320;
+            debugCanvas.height = 240;
+            canvas.style="visibility:hidden";
+            document.body.appendChild(debugCanvas);
+            //将视频写入videoCanvas,之后将作为纹理付给plan平面
+            var videoCanvas = document.createElement('canvas');
+            videoCanvas.width = cameraview.width;
+            videoCanvas.height = cameraview.width*3/4;
+
+            //获取canvas画笔
+            var ctx = canvas.getContext('2d');
+            ctx.font = "24px URW Gothic L, Arial, Sans-serif";
+
+            // 为Canvas创建光栅对象，JSAR用光栅对象读取每一帧画面的数据，切记要设置canvas.changed = true告知JSAR动态识别
+            var raster = new NyARRgbRaster_Canvas2D(canvas);
+            //设置摄像头参数，FLARParam是FLAR的方法
+            var param = new FLARParam(320,240);
+            //创建一个NyARTransMatResult对象来获取标记的转换矩阵
+            var resultMat = new NyARTransMatResult();
+            //FLARMultiIdMarkerDetector是一个侦测并捕捉标记点的检测引擎，他能够侦测出多种不同ID的标记点，标记点其实是一些数字的编码的二维码。
+            var detector = new FLARMultiIdMarkerDetector(param, 120);
+            //设置检测器持续循环捕捉
+            detector.setContinueMode(true);
+
+            // glMatrix 矩阵是一个float 类型的数组.
+            var tmp = new Float32Array(16);
+            //创建3维渲染环境
+            var renderer = new THREE.WebGLRenderer();
+            renderer.setSize(960, 720);
+
+            var glCanvas = renderer.domElement;
+            var s = glCanvas.style;
+            //加到网页中
+            document.body.appendChild(glCanvas);
+
+//创建一个摄像机和一个标记的根对象（用这个相机的转换矩阵来从不同角度看物体）
+            var scene = new THREE.Scene();
+            var light = new THREE.PointLight(0xffffff);
+            light.position.set(400, 500, 100);
+            scene.add(light);
+            var light = new THREE.PointLight(0xffffff);
+            light.position.set(-400, -500, -100);
+            scene.add(light);
+
+            var ambient = new THREE.AmbientLight( 0x221100 );
+            scene.add( ambient );
+
+            var directionalLight = new THREE.DirectionalLight( 0xffeedd );
+            directionalLight.position.set( 0, -70, 100 ).normalize();
+            scene.add( directionalLight );
+            var camera = new THREE.Camera();
+
+            scene.add(camera);
+
+            // Next we need to make the Three.js camera use the FLARParam matrix.
+            //从FLARParam复制摄像机透视矩阵到WEBGL摄像机矩阵库中，后两个参数表示在Z轴上的最近最远距离。
+            param.copyCameraMatrix(tmp, 10, 10000);
+            //设置相机的投影矩阵
+            camera.projectionMatrix.setFromArray(tmp);
+            //将摄像头的视频作为材质贴图
+            var videoTex = new THREE.Texture(videoCanvas);
+            //
+            var loader = new THREE.JSONLoader();
+            // 创建一个平面，材质 texture贴图是视频Canvas，添加到场景中去
+            var plane = new THREE.Mesh(
+                    new THREE.PlaneGeometry(2, 2, 0),
+                    new THREE.MeshBasicMaterial({map: videoTex})
+            );
+            // 设置平面plane忽视z轴
+            plane.material.depthTest = false;
+            plane.material.depthWrite = false;
+            //新建场景和相机，将平面加到此场景中作为大背景
+            var videoCam = new THREE.Camera();
+            var videoScene = new THREE.Scene();
+            videoScene.add(plane);
+            videoScene.add(videoCam);
+
+            var times = [];
+            var markers = {};
+            var lastTime = 0;
+            //然后在光栅对象上运行检测器。检测器会返回在图片中找到的标记数量。setInterval定时器实现持续更新的动画
+            setInterval(function(){
+                if (cameraview.ended) cameraview.play();
+                if (cameraview.paused) return;
+                if (window.paused) return;
+                if (cameraview.currentTime == cameraview.duration) {
+                    cameraview.currentTime = 0;
+                }
+                if (cameraview.currentTime == lastTime) return;
+                lastTime = cameraview.currentTime;
+                //在光栅对象运行Canvas上实时绘制视频的图像
+                videoCanvas.getContext('2d').drawImage(cameraview,0,0);
+                ctx.drawImage(videoCanvas, 0,0,320,240);
+                var dt = new Date().getTime();
+                //告知光栅对象更新
+                canvas.changed = true;
+                //视频材质更新
+                videoTex.needsUpdate = true;
+
+                var t = new Date();
+                //通过引擎在光栅对象上检测获取到的标记的数量，threshold是对比度阀值，根据阀值把图像处理成纯黑或纯白的马赛克像素点
+                var detected = detector.detectMarkerLite(raster, threshold);
+                //遍历检测到的标记并获取它们的转换矩阵。使用转换矩阵将 3D 对象显示在标记上。
+                for (var idx = 0; idx<detected; idx++) {
+                    //遍历获取标记图片所隐藏的数字字节编码
+                    var id = detector.getIdMarkerData(idx);
+
+                    var currId;
+                    //从id packet中读取字节信息
+                    // 这个编码为一个 32字节编码的数字或者更短
+                    if (id.packetLength > 4) {
+                        currId = -1;
+                    }else{
+                        currId=0;
+                        for (var i = 0; i < id.packetLength; i++ ) {
+                            currId = (currId << 8) | id.getPacketData(i);
+                        }
+                    }
+
+                    //如果发现一个新的标记，马上捕获他
+                    if (!markers[currId]) {
+                        markers[currId] = {};
+
+                    }
+                    //从检测器对象中获取转换矩阵
+                    // Get the marker matrix into the result matrix.
+                    detector.getTransformMatrix(idx, resultMat);
+                    markers[currId].age = 0;
+                    //复制结果矩阵运用到我们获得标记的物体上
+                    markers[currId].transform = Object.asCopy(resultMat);
+                }
+                for (var i in markers) {
+                    var r = markers[i];
+                    if (r.age > 1) {
+                        //删除标记
+                        delete markers[i];
+                        //移除模型
+                        scene.remove(r.model);
+                    }
+                    r.age++;
+                }
+
+                for (var i in markers) {
+                    var m = markers[i];
+                    //如果标记上没有模型，加上
+                    if (m.model) {
+                    } else {
+                        m.model = new THREE.Object3D();  
+
+                    //     var sphere = new THREE.Mesh(
+			        //     new THREE.SphereGeometry(80, 48, 48),
+			        //     new THREE.MeshBasicMaterial({
+				    //     map: THREE.ImageUtils.loadTexture('earth.jpg')
+			        //     })
+		            // );
+
+                        m.model.matrixAutoUpdate = false;
+                        m.model.add(getEarthSphere());
+                        scene.add(m.model);
+                        }
+                    // Copy the marker matrix to the tmp matrix.
+                    copyMatrix(m.transform, tmp);
+                    // Copy the marker matrix over to your marker object.
+                    m.model.matrix.setFromArray(tmp);
+                    m.model.matrixWorldNeedsUpdate = true;
+                }
+                //渲染结果
+                renderer.autoClear = false;
+                renderer.clear();
+                renderer.render(videoScene, videoCam);
+                renderer.render(scene, camera);
+                requestAnimationFrame(render);
+                update();
+
+            }, 15);
+        }
+
+
+
+
+        
+        //将glMatrix 矩阵转换成THREE.Matrix4矩阵
+        THREE.Matrix4.prototype.setFromArray = function(m) {
+            return this.set(
+                    m[0], m[4], m[8], m[12],
+                    m[1], m[5], m[9], m[13],
+                    m[2], m[6], m[10], m[14],
+                    m[3], m[7], m[11], m[15] 
+            )
+        };
+
+        //以下代码用于将 JSARToolKit 矩阵复制转换成 glMatrix 矩阵（这些矩阵是 16 个元素的 FloatArrays，其中最后四个元素是转换列）。
+        //这段代码十分奇妙,这个符号反转技巧让 JSARToolKit 矩阵的运行效果与 glMatrix 相同。
+        function copyMatrix(mat, cm) {
+            cm[0] = mat.m00;
+            cm[1] = -mat.m10;
+            cm[2] = mat.m20;
+            cm[3] = 0;
+            cm[4] = mat.m01;
+            cm[5] = -mat.m11;
+            cm[6] = mat.m21;
+            cm[7] = 0;
+            cm[8] = -mat.m02;
+            cm[9] = mat.m12;
+            cm[10] = -mat.m22;
+            cm[11] = 0;
+            cm[12] = mat.m03;
+            cm[13] = -mat.m13;
+            cm[14] = mat.m23;
+            cm[15] = 1;
+        }
+
+        function update() {
+        earthRotY += 0.007;
+        earthMesh.rotation.y = earthRotY;
+    }
+
+    // function render() {
+    //     update();
+    //     renderer.setClearColor(0x000000, 0);
+    //     renderer.render(videoScene, videoCam);
+    //     renderer.render(scene, camera);
+    //     requestAnimationFrame(render);
+    // }
+        // requestAnimationFrame(render);
+
+
+
+        </script>
+
+
+    </body>
+    <style>
+        html {
+            background: white;
+            color: black;
+        }
+        body {
+            margin: 0;
+            padding: 0;
+            margin-top: 20px;
+            text-align: center;
+        }
+        #loading {
+            font-size: 80px;
+            font-weight: bold;
+            font-family: Times;
+        }
+        #main{
+            position:absolute;
+            left:1px;
+            top:1px;
+            width:100% ;
+            height:100%;
+        }
+    </style>
+
+    <link></head>
+    <body>
+    <div id="loading" style="display: none; ">loading...</div>
+    </body>
+</html>
