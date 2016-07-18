@@ -1,7 +1,6 @@
 
 // get WebRTC camera view
 function getCameraView() {
-
     var cameraview = document.createElement('video');
         cameraview.width = 640;
         cameraview.height = 480;
@@ -9,20 +8,19 @@ function getCameraView() {
         cameraview.volume = 0;
         cameraview.autoplay = true;
         cameraview.style="visibility:hidden;display:none";
-        
 
-        var getUserMedia = function(t, onsuccess, onerror) {
-            if (navigator.getUserMedia) {
-                return navigator.getUserMedia(t, onsuccess, onerror);
-            } else if (navigator.webkitGetUserMedia) {
-                return navigator.webkitGetUserMedia(t, onsuccess, onerror);
-            } else if (navigator.mozGetUserMedia) {
-                return navigator.mozGetUserMedia(t, onsuccess, onerror);
-            } else if (navigator.msGetUserMedia) {
-                return navigator.msGetUserMedia(t, onsuccess, onerror);
-            } else {
-                onerror(new Error("No getUserMedia implementation found."));
-            }
+    var getUserMedia = function(t, onsuccess, onerror) {
+        if (navigator.getUserMedia) {
+        return navigator.getUserMedia(t, onsuccess, onerror);
+        } else if (navigator.webkitGetUserMedia) {
+        return navigator.webkitGetUserMedia(t, onsuccess, onerror);
+        } else if (navigator.mozGetUserMedia) {
+        return navigator.mozGetUserMedia(t, onsuccess, onerror);
+        } else if (navigator.msGetUserMedia) {
+        return navigator.msGetUserMedia(t, onsuccess, onerror);
+        } else {
+        onerror(new Error("No getUserMedia implementation found."));
+        }
         };
 
         var URL = window.URL || window.webkitURL;

@@ -16,9 +16,11 @@
         <script src="js/OBJLoader.js"></script>
         <script src="CameraView.js"></script>
         <script src="Content.js"></script>
+        <script src="CameraCanvas.js"></script>
         <script>
 
         var earthRotY = 0;
+        // var glContent = getCameraView();
 
 
         threshold = 140;
@@ -27,6 +29,7 @@
         var cameraview = getCameraView();
 
         window.onload = function() {
+
             document.getElementById('loading').style.display = 'none';
             //獲取網路攝影機畫面
             document.body.appendChild(cameraview);
@@ -35,6 +38,7 @@
             canvas.width = 320;
             canvas.height = 240;
             canvas.style="visibility:hidden";
+
             document.body.appendChild(canvas);
             //圖像處理debug畫面
             var debugCanvas = document.createElement('canvas');
@@ -42,7 +46,9 @@
             debugCanvas.width = 320;
             debugCanvas.height = 240;
             canvas.style="visibility:hidden";
+
             document.body.appendChild(debugCanvas);
+
             //将视频写入videoCanvas,之后将作为纹理付给plan平面
             var videoCanvas = document.createElement('canvas');
             videoCanvas.width = cameraview.width;
@@ -51,6 +57,10 @@
             //获取canvas画笔
             var ctx = canvas.getContext('2d');
             ctx.font = "24px URW Gothic L, Arial, Sans-serif";
+
+
+
+
 
             // 为Canvas创建光栅对象，JSAR用光栅对象读取每一帧画面的数据，切记要设置canvas.changed = true告知JSAR动态识别
             var raster = new NyARRgbRaster_Canvas2D(canvas);
@@ -63,6 +73,9 @@
             //设置检测器持续循环捕捉
             detector.setContinueMode(true);
 
+
+
+
             // glMatrix 矩阵是一个float 类型的数组.
             var tmp = new Float32Array(16);
             //创建3维渲染环境
@@ -74,21 +87,8 @@
             //加到网页中
             document.body.appendChild(glCanvas);
 
-//创建一个摄像机和一个标记的根对象（用这个相机的转换矩阵来从不同角度看物体）
+            //创建一个摄像机和一个标记的根对象（用这个相机的转换矩阵来从不同角度看物体）
             var scene = new THREE.Scene();
-            var light = new THREE.PointLight(0xffffff);
-            light.position.set(400, 500, 100);
-            scene.add(light);
-            var light = new THREE.PointLight(0xffffff);
-            light.position.set(-400, -500, -100);
-            scene.add(light);
-
-            var ambient = new THREE.AmbientLight( 0x221100 );
-            scene.add( ambient );
-
-            var directionalLight = new THREE.DirectionalLight( 0xffeedd );
-            directionalLight.position.set( 0, -70, 100 ).normalize();
-            scene.add( directionalLight );
             var camera = new THREE.Camera();
 
             scene.add(camera);
@@ -186,15 +186,7 @@
                     //如果标记上没有模型，加上
                     if (m.model) {
                     } else {
-                        m.model = new THREE.Object3D();  
-
-                    //     var sphere = new THREE.Mesh(
-			        //     new THREE.SphereGeometry(80, 48, 48),
-			        //     new THREE.MeshBasicMaterial({
-				    //     map: THREE.ImageUtils.loadTexture('earth.jpg')
-			        //     })
-		            // );
-
+                        m.model = new THREE.Object3D(); 
                         m.model.matrixAutoUpdate = false;
                         m.model.add(getEarthSphere());
                         scene.add(m.model);
@@ -211,12 +203,9 @@
                 renderer.render(videoScene, videoCam);
                 renderer.render(scene, camera);
                 requestAnimationFrame(render);
-                update();
 
             }, 15);
         }
-
-
 
 
         
@@ -250,20 +239,6 @@
             cm[14] = mat.m23;
             cm[15] = 1;
         }
-
-        function update() {
-        earthRotY += 0.007;
-        earthMesh.rotation.y = earthRotY;
-    }
-
-    // function render() {
-    //     update();
-    //     renderer.setClearColor(0x000000, 0);
-    //     renderer.render(videoScene, videoCam);
-    //     renderer.render(scene, camera);
-    //     requestAnimationFrame(render);
-    // }
-        // requestAnimationFrame(render);
 
 
 
