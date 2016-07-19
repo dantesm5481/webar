@@ -180,7 +180,7 @@
                     } else {
                         m.model = new THREE.Object3D(); 
                         m.model.matrixAutoUpdate = false;
-                        m.model.add(getEarthSphere());
+                        m.model.add(get3Dcontent());
                         scene.add(m.model);
                         }
                     // Copy the marker matrix to the tmp matrix.
@@ -196,11 +196,25 @@
                 renderer.render(scene, camera);
                 requestAnimationFrame(render);
 
+    var controls = new THREE.DeviceOrientationControls(camera);
+
+    updateFcts.push(function(){
+      renderer.render( scene, camera );
+    });
+
+    var lastTimeMsec= null;
+      requestAnimationFrame(function animate(nowMsec){
+      requestAnimationFrame( animate );
+      lastTimeMsec	= lastTimeMsec || nowMsec-1000/60
+      var deltaMsec	= Math.min(200, nowMsec - lastTimeMsec)
+      lastTimeMsec	= nowMsec
+      updateFcts.forEach(function(updateFn){
+        updateFn(deltaMsec/1000, nowMsec/1000)
+      })
+      controls.update();
+    })
             }, 15);
         }
-
-
-
         //将glMatrix 矩阵转换成THREE.Matrix4矩阵
         THREE.Matrix4.prototype.setFromArray = function(m) {
             return this.set(

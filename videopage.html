@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+  <title>360 Raymond Video</title>
+  <style>
+    body { margin: 0; overflow: hidden; background-color: #fff; }
+    #buttonsContainer { position: absolute; top: 0; }
+    button {
+      color: #fff;
+      border: none;
+      outline: none;
+      font-size: 3em;
+      font-weight: bold;
+      margin-right: 40px;
+      background: transparent;
+      text-shadow: 2px 2px 4px #000000;
+    }
+  </style>
+
+</head>
+<body>
+  <div id="buttonsContainer">
+    <!--<button id="playButton" onclick='videoplay()'>play</button>-->
+  </div>
+
+  <script src="http://threejs.org/build/three.min.js"></script>
+  <script src="js/DeviceOrientationControls.js"></script>
+  <script src='js/threex.videotexture.js'></script>
+  <script src="js/OrbitControls.js"></script>	
+  <script src='js/iphone-inline-video.browser.js'></script>
+
+  <script>
+
+    var width  = window.innerWidth,
+        height = window.innerHeight,
+        isPlaying = false;
+    var renderer	= new THREE.WebGLRenderer({
+      antialias	: true,// antialias 鋸齒化
+    });
+
+    document.body.appendChild( renderer.domElement );
+
+
+
+    var updateFcts	= [];
+    var scene	= new THREE.Scene();
+    var camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 10000 );
+    camera.position.z = 0.1;
+
+    var url	= 'classics.mp4'
+  	var videoTexture= new THREEx.VideoTexture(url)
+  	var video	= videoTexture.video
+    updateFcts.push(function(delta, now){
+			videoTexture.update(delta, now)
+		})
+   var plane = new THREE.Mesh(
+                            new THREE.PlaneGeometry( 480, 400, 4),
+                            new THREE.MeshBasicMaterial({ map	: videoTexture.texture})
+                        );
+    scene.add(plane);
+
+    // play();
+    function play(){
+    
+    var controls = new THREE.DeviceOrientationControls(camera);
+
+    updateFcts.push(function(){
+      renderer.render( scene, camera );
+    });
+
+    var lastTimeMsec= null;
+      requestAnimationFrame(function animate(nowMsec){
+      requestAnimationFrame( animate );
+      lastTimeMsec	= lastTimeMsec || nowMsec-1000/60
+      var deltaMsec	= Math.min(200, nowMsec - lastTimeMsec)
+      lastTimeMsec	= nowMsec
+      updateFcts.forEach(function(updateFn){
+        updateFn(deltaMsec/1000, nowMsec/1000)
+      })
+      controls.update();
+    })
+
+
+    }
+
+
+
+  </script>
+</body>
